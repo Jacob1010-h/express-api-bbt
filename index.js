@@ -73,13 +73,14 @@ const formatToHTML = function (dataArr) {
     
     dataArr = dataArr.map((item) => {
         // Create the HTML here
-        let html = "<tr>";
-        html += item.year ? "<td>" + item.year + "</td>" : "<td></td>";
-        html += item.name ? "<td>" + item.name + "</td>" : "<td></td>";
-        html += item.sex ? "<td>" + item.sex + "</td>" : "<td></td>";
-        html += item.count ? "<td>" + item.count + "</td>" : "<td></td>";
-        html += "</tr>";
-        return html;
+        
+        let htmlLine = "<tr>";
+        htmlLine += item.year ? "<td>" + item.year + "</td>" : "<td></td>";
+        htmlLine += item.name ? "<td>" + item.name + "</td>" : "<td></td>";
+        htmlLine += item.sex ? "<td>" + item.sex + "</td>" : "<td></td>";
+        htmlLine += item.count ? "<td>" + item.count + "</td>" : "<td></td>";
+        htmlLine += "</tr>";
+        return htmlLine;
     });
     // Now join all the elements together inside the
     // <table><tbody> elements.
@@ -138,43 +139,43 @@ const beautify = function (data) {
 }
 
 app.get("/baby-name/:name", function (req, res) {
-    let data = formatToHTML(byName[fixName(req.params.name)]);
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)] : beautify(formatToHTML(byName[fixName(req.params.name)]));
+    res.send(data);
 });
 
 app.get("/baby-name/:name/:year", function (req, res) {
-    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year == req.params.year));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year == req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year == req.params.year)));
+    res.send(data);
 });
 
 app.get("/baby-name/:name/after/:year", function (req, res) {
-    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year > req.params.year));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year > req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year > req.params.year))) ;
+    res.send(data);
 });
 
 app.get("/baby-name/:name/before/:year", function (req, res) {
-    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year < req.params.year));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year < req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year < req.params.year))) ;
+    res.send(data);
 });
 
 app.get("/baby-year/:year", function (req, res) {
-    let data = formatToHTML(byYear[req.params.year]);
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year] : beautify(formatToHTML(byYear[req.params.year])) ;
+    res.send(data);
 });
 
 app.get("/baby-year/:year/:name", function (req, res) {
-    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)))) ;
+    res.send(data);
 });
 
 app.get("/baby-year-start/:year/:letter", function (req, res) {
-    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter))) ;
+    res.send(data);
 });
 
 app.get("/baby-year-end/:year/:letter", function (req, res) {
-    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter));
-    res.send(beautify(data));
+    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter))) ;
+    res.send(data);
 });
 
 
