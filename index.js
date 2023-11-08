@@ -1,25 +1,52 @@
 const express = require("express");
-const router = require("express").Router();
 const { byName, byYear } = require("us-baby-names-2");
 const app = express();
 const port = 3000;
 
 app.use(function (req, res, next) {
-    console.log("Additional processing is done here");
-    req.timestamp = new Date().toString();
+    console.log("--------------------------");
+    console.log("Request received at " + "\x1b[36m" + new Date().toString() + "\x1b[0m for path " + "\x1b[32m" + req.path + "\x1b[0m");
     next();
 });
 
 app.get("/", (req, res) => {
-    res.append("Content-Type", "text/html");
-    res.json(
-        "<html><head></head><body>" +
-            "<h1>Hello World!</h1>" +
-            "<h3>My server is working!!!</h3>" +
-            "<h5>" +
-            req.timestamp +
-            "</h5></body></html>"
-    );
+    res.send(`<html>
+    <head>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #333; /* Dark background color */
+          color: #fff; /* Light text color */
+          text-align: center;
+        }
+        .container {
+          background-color: #444; /* Slightly lighter container background */
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        a {
+          text-decoration: none;
+          color: #fff;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+
+      </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Welcome to BabyNames Test and the Big Bang Theory API</h1>
+            <p></p>
+            <p>Timestamp: ${req.timestamp}</p>
+            <a href="/bbt">Big Bang Theory Episode information</a></br>
+            <a href="/baby-name/Tim">US Baby Names</a></br>
+        </div>
+    </body>
+    </html>`);
 });
 
 app.get("/bbt", (req, res) => {
@@ -43,19 +70,20 @@ const formatToHTML = function (dataArr) {
     }
     // Use the Array.map function to convert each record
     // into an HTML table element.
+    
     dataArr = dataArr.map((item) => {
         // Create the HTML here
         let html = "<tr>";
-        html += item.year ? "<td>" + item.year + "</td>" : "";
-        html += item.name ? "<td>" + item.name + "</td>" : "";
-        html += item.sex ? "<td>" + item.sex + "</td>" : "";
-        html += item.count ? "<td>" + item.count + "</td>" : "";
+        html += item.year ? "<td>" + item.year + "</td>" : "<td></td>";
+        html += item.name ? "<td>" + item.name + "</td>" : "<td></td>";
+        html += item.sex ? "<td>" + item.sex + "</td>" : "<td></td>";
+        html += item.count ? "<td>" + item.count + "</td>" : "<td></td>";
         html += "</tr>";
         return html;
     });
     // Now join all the elements together inside the
     // <table><tbody> elements.
-    return "<table><tbody>" + dataArr.join("") + "</tbody></table>";
+    return "<table><tbody>"+ "<th>Year</th>"+ "<th>Name</th>" + "<th>Sex</th>"+ "<th>Count</th>" + dataArr.join("") + "</tbody></table>";
 };
 
 // Transform name with first character capitalized and the
@@ -72,16 +100,30 @@ const beautify = function (data) {
       <style>
         body {
           font-family: Arial, sans-serif;
-          background-color: #f0f0f0;
+          background-color: #333; /* Dark background color */
+          color: #fff; /* Light text color */
           text-align: center;
         }
         .container {
-          background-color: white;
+          background-color: #444; /* Slightly lighter container background */
           padding: 20px;
           border-radius: 10px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
           max-width: 600px;
           margin: 0 auto;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          background-color: #555; /* Dark background for the table */
+        }
+        th, td {
+          border: 1px solid #777; /* Slightly lighter border for cells */
+          padding: 8px;
+          text-align: left;
+        }
+        th {
+          background-color: #333; /* Dark header background color */
         }
       </style>
     </head>
@@ -92,13 +134,49 @@ const beautify = function (data) {
         ${data}
       </div>
     </body>
-  </html>`);
+    </html>`);
 }
 
 app.get("/baby-name/:name", function (req, res) {
     let data = formatToHTML(byName[fixName(req.params.name)]);
     res.send(beautify(data));
 });
+
+app.get("/baby-name/:name/:year", function (req, res) {
+    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year == req.params.year));
+    res.send(beautify(data));
+});
+
+app.get("/baby-name/:name/after/:year", function (req, res) {
+    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year > req.params.year));
+    res.send(beautify(data));
+});
+
+app.get("/baby-name/:name/before/:year", function (req, res) {
+    let data = formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year < req.params.year));
+    res.send(beautify(data));
+});
+
+app.get("/baby-year/:year", function (req, res) {
+    let data = formatToHTML(byYear[req.params.year]);
+    res.send(beautify(data));
+});
+
+app.get("/baby-year/:year/:name", function (req, res) {
+    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)));
+    res.send(beautify(data));
+});
+
+app.get("/baby-year-start/:year/:letter", function (req, res) {
+    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter));
+    res.send(beautify(data));
+});
+
+app.get("/baby-year-end/:year/:letter", function (req, res) {
+    let data = formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter));
+    res.send(beautify(data));
+});
+
 
 // 404 Page Not Found
 app.get("*", (req, res) => {
@@ -119,6 +197,23 @@ app.get("*", (req, res) => {
   `);
 });
 
+function rainbowConsoleLog(text) {
+    const words = text.split(' '); // Split the text into words
+    const colors = [31, 33, 32, 36, 34, 35]; // ANSI color codes for red, yellow, green, cyan, blue, magenta
+    let output = '';
+  
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      const colorCode = colors[i % colors.length];
+      output += `\x1b[${colorCode}m${word}\x1b[0m`; // Apply color to the word
+      if (i < words.length - 1) {
+        output += ' '; // Add a space between words
+      }
+    }
+  
+    console.log(output);
+}
+
 app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+    rainbowConsoleLog(`App listening at http://localhost:${port}`);
 });
