@@ -5,7 +5,15 @@ const port = 3000;
 
 app.use(function (req, res, next) {
     console.log("--------------------------");
-    console.log("Request received at " + "\x1b[36m" + new Date().toString() + "\x1b[0m for path " + "\x1b[32m" + req.path + "\x1b[0m");
+    console.log(
+        "Request received at " +
+            "\x1b[36m" +
+            new Date() +
+            "\x1b[0m for path " +
+            "\x1b[32m" +
+            req.path +
+            "\x1b[0m"
+    );
     next();
 });
 
@@ -41,9 +49,9 @@ app.get("/", (req, res) => {
         <div class="container">
             <h1>Welcome to BabyNames Test and the Big Bang Theory API</h1>
             <p></p>
-            <p>Timestamp: ${req.timestamp}</p>
+            <p>Timestamp: ${new Date().toLocaleTimeString()}</p>
             <a href="/bbt">Big Bang Theory Episode information</a></br>
-            <a href="/baby-name/Tim">US Baby Names</a></br>
+            <a href="/baby-api/search">US Baby Names</a></br>
         </div>
     </body>
     </html>`);
@@ -70,10 +78,10 @@ const formatToHTML = function (dataArr) {
     }
     // Use the Array.map function to convert each record
     // into an HTML table element.
-    
+
     dataArr = dataArr.map((item) => {
         // Create the HTML here
-        
+
         let htmlLine = "<tr>";
         htmlLine += item.year ? "<td>" + item.year + "</td>" : "<td></td>";
         htmlLine += item.name ? "<td>" + item.name + "</td>" : "<td></td>";
@@ -84,7 +92,15 @@ const formatToHTML = function (dataArr) {
     });
     // Now join all the elements together inside the
     // <table><tbody> elements.
-    return "<table><tbody>"+ "<th>Year</th>"+ "<th>Name</th>" + "<th>Sex</th>"+ "<th>Count</th>" + dataArr.join("") + "</tbody></table>";
+    return (
+        "<table><tbody>" +
+        "<th>Year</th>" +
+        "<th>Name</th>" +
+        "<th>Sex</th>" +
+        "<th>Count</th>" +
+        dataArr.join("") +
+        "</tbody></table>"
+    );
 };
 
 // Transform name with first character capitalized and the
@@ -95,8 +111,8 @@ const fixName = function (name) {
     return newName;
 };
 
-const beautify = function (data) {
-    return(`<html>
+const beautify = function (data, res) {
+    return `<html>
     <head>
       <style>
         body {
@@ -126,58 +142,360 @@ const beautify = function (data) {
         th {
           background-color: #333; /* Dark header background color */
         }
+        tr:nth-child(even) {
+          background-color: #222; /* Darker background color for odd rows */
+        }
+        a {
+          text-decoration: none;
+          color: #fff;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+        a:visited {
+        color: #D1D1D1;
+        }
+
       </style>
     </head>
     <body>
       <div class="container">
         <h1>US Baby Names</h1>
+        <h3>Go Back To Search Page</h3>
+        <a href="/baby-api/search">Go Back</a>
+
         <p>Here is the data you requested:</p>
         ${data}
       </div>
     </body>
-    </html>`);
-}
+    </html>`;
+};
+
+// Include the body parser middleware for parsing URL-encoded data
+app.use(express.urlencoded({ extended: true }));
+
+app.post("/baby-name/submit", (req, res) => {
+    const name = fixName(req.body.inputName);
+    const year = req.body.year;
+    let beforeAfter = req.body.beforeAfter;
+
+    let redirectURL = ``;
+
+    if (year) {
+        beforeAfter = beforeAfter.toLowerCase();
+        if (beforeAfter == "before") {
+            redirectURL = `${name}/before/${year}`;
+        } else if (beforeAfter == "after") {
+            redirectURL = `${name}/after/${year}`;
+        } else {
+            redirectURL = `${name}/${year}`;
+        }
+        if (req.body.json == "true") {
+            redirectURL += `?json=true`;
+        }
+    } else {
+        redirectURL = `${name}`;
+    }
+
+    // Redirect to the constructed URL
+    res.redirect(redirectURL);
+});
+
+app.post("/baby-year/submit", (req, res) => {
+    const year = req.body.inputYear;
+    const name = fixName(req.body.inputName);
+    const startEnd = req.body.startEnd;
+    
+    let redirectURL = ``;
+
+    if (name) {
+        if (startEnd == "startLetter") {
+            redirectURL = `../baby-year-start/${year}/${name.charAt(0)}`;
+        } else if (startEnd == "endLetter") {
+            redirectURL = `../baby-year-end/${year}/${name.charAt(
+                name.length - 1
+            )}`;
+        } else {
+            redirectURL = `${year}/${name}`;
+        }
+        if (req.body.json == "true") {
+            redirectURL += `?json=true`;
+        }
+    } else {
+        redirectURL = `${year}`;
+    }
+
+    // Redirect to the constructed URL
+    res.redirect(redirectURL);
+});
+
+app.get("/baby-api", function (req, res) {
+    res.redirect("/baby-api/search");
+});
+
+app.get("/baby-api/search", function (req, res) {
+    // make a search bar here
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #333; /* Dark background color */
+                    color: #fff; /* Light text color */
+                    text-align: center;
+                }
+                .container {
+                    background-color: #444; /* Slightly lighter container background */
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+                    max-width: 600px;
+                    margin: 0 auto;
+                }
+                input[type=text] {
+                    width: 70%;
+                    padding: 12px 20px;
+                    margin: 8px 0;
+                    box-sizing: border-box;
+                }
+                input[type=checkbox] {
+                    width: 10%;
+                    padding: 12px 20px;
+                    margin: 8px 0;
+                    box-sizing: border-box;
+                }
+                select {
+                    width: 70%;
+                    padding: 12px 20px;
+                    margin: 8px 0;
+                    box-sizing: border-box;
+                }
+                button {
+                    width: 70%;
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 14px 20px;
+                    margin: 8px 0;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                button:hover {
+                    background-color: #45a049;
+                }
+                h1 {
+                    font-size: 3rem;
+                }
+                .grid-container {
+                    display: grid;
+                    grid-column-start: 1;
+                    grid-column-end: 2;
+                    grid-row-template: auto;
+                    background-color: #333;
+                    padding: 10px;
+                }
+
+                </style>
+        </head>
+        <div class="grid-container">
+        <body>
+            <h1>US Baby Names by Name</h1>
+            <form id="myForm" action="/baby-name/submit" method="post">
+
+                <div class="grid-item">
+                <label for="inputName">Enter a name:</label>
+                </div>
+                <div class="grid-item">
+                <input type="text" id="inputName" name="inputName" required>
+                </div>
+
+                </br>
+                
+                <div class="grid-item">
+                <label for="json">JSON</label>
+                </div>
+                <div class="grid-item">
+                <input type="checkbox" id="json" name="json" value="true">
+                </div>
+
+                </br>
+                
+                <div class="grid-item">
+                <label for ="year">Year</label>
+                </div>
+                <div class="grid-item">
+                <input type="text" id="year" name="year">
+                </div>
+
+                </br>
+                <div class="grid-item">
+                <label for ="beforeAfter">Before/After Year</label>
+                </div>
+                <div class="grid-item">
+                <select name="beforeAfter" id="beforeAfter">
+                <option value="none">None</option>
+                    <option value="before">Before</option>
+                    <option value="after">After</option>
+                </select>
+                <button type="submit">Submit</button>
+                </div>
+            </form>  
+            
+            <h1>US Baby Names by Year</h1>
+            <form id="myForm" action="/baby-year/submit" method="post">
+                <div class="grid-item">
+                <label for="inputYear">Enter a year:</label>
+                </div>
+
+                <div class="grid-item">
+                <input type="text" id="inputYear" name="inputYear" required>
+                </div>
+
+                </br>
+
+                <div class="grid-item">
+                <label for="json">JSON</label>
+                </div>
+                <div class="grid-item">
+                <input type="checkbox" id="json" name="json" value="true">
+                </div>
+                </br>
+                
+                <div class="grid-item">
+                <label for ="inputName">Name</label>
+                </div>
+                <div class="grid-item">
+                <input type="text" id="inputName" name="inputName">
+                </div>
+                
+                </br>
+                <div class="grid-item">
+                <label for ="startEnd">Start/End Letter</label>
+                </div>
+                <div class="grid-item">
+                <select name="startEnd" id="startEnd" required>
+                    <option value="none">None</option>
+                    <option value="startLetter">Start Letter</option>
+                    <option value="endLetter">End Letter</option>
+                </select>
+                <button type="submit">Submit</button>
+                </div>
+            </form>
+        </body>
+        </div>
+        </html>
+    `);
+});
 
 app.get("/baby-name/:name", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)] : beautify(formatToHTML(byName[fixName(req.params.name)]));
-    res.send(data);
+    let data = byName[fixName(req.params.name)];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data)
+    );
 });
 
 app.get("/baby-name/:name/:year", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year == req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year == req.params.year)));
-    res.send(data);
+    let data = byName[fixName(req.params.name)];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.year == req.params.year;
+        })
+    );
 });
 
 app.get("/baby-name/:name/after/:year", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year > req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year > req.params.year))) ;
-    res.send(data);
+    let data = byName[fixName(req.params.name)];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.year > req.params.year;
+        })
+    );
 });
 
 app.get("/baby-name/:name/before/:year", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byName[fixName(req.params.name)].filter((item) => item.year < req.params.year) : beautify(formatToHTML(byName[fixName(req.params.name)].filter((item) => item.year < req.params.year))) ;
-    res.send(data);
+    let data = byName[fixName(req.params.name)];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.year < req.params.year;
+        })
+    );
 });
 
 app.get("/baby-year/:year", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year] : beautify(formatToHTML(byYear[req.params.year])) ;
-    res.send(data);
+    let data = byYear[req.params.year];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data)
+    );
 });
 
 app.get("/baby-year/:year/:name", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name == fixName(req.params.name)))) ;
-    res.send(data);
+    let data = byYear[req.params.year];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.name == req.params.name;
+        })
+    );
 });
 
 app.get("/baby-year-start/:year/:letter", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(0) == req.params.letter))) ;
-    res.send(data);
+    let data = byYear[req.params.year];
+    
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.name.charAt(0) == req.params.letter;
+        })
+    );
 });
 
 app.get("/baby-year-end/:year/:letter", function (req, res) {
-    let data = (req.query.json == 'true' || req.query.json == 1) ? byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter) : beautify(formatToHTML(byYear[req.params.year].filter((item) => item.name.charAt(item.name.length - 1) == req.params.letter))) ;
-    res.send(data);
+    let data = byYear[req.params.year];
+
+    res.send(
+        dataAndfilteredDataExists(req, res, data, (item) => {
+            return item.name.charAt(item.name.length - 1) == req.params.letter;
+        })
+    );
 });
 
+function dataAndfilteredDataExists(req, res, data, filter = undefined) {
+    let endData = data;
+
+    // if the data is undefined or empty, write a 404 error
+    if (endData == undefined || endData.length == 0) {
+        res.status(404).send(`404 Not Found...Go back to home page
+            <a href="/baby-api/search">Go Back</a>`);
+    } else {
+        // if the filter is undefined, we are not filtering the data,
+        // so we can just write the data as is
+        if (filter == undefined) {
+            if (req.query.json == "true" || req.query.json == 1) {
+            } else {
+                endData = beautify(formatToHTML(endData), res);
+            }
+        } else {
+            filteredData = endData.filter(filter);
+            // if the filteredData is undefined or empty, write a 404 error
+            if (filteredData == undefined || filteredData.length == 0) {
+                res.status(404).send(`404 Not Found...Go back to home page
+                <a href="/baby-api/search">Go Back</a>`);
+            } else {
+                if (req.query.json == "true" || req.query.json == 1) {
+                } else {
+                    endData = beautify(formatToHTML(filteredData), res);
+                }
+            }
+        }
+    }
+    return endData;
+}
 
 // 404 Page Not Found
 app.get("*", (req, res) => {
@@ -199,19 +517,19 @@ app.get("*", (req, res) => {
 });
 
 function rainbowConsoleLog(text) {
-    const words = text.split(' '); // Split the text into words
+    const words = text.split(" "); // Split the text into words
     const colors = [31, 33, 32, 36, 34, 35]; // ANSI color codes for red, yellow, green, cyan, blue, magenta
-    let output = '';
-  
+    let output = "";
+
     for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      const colorCode = colors[i % colors.length];
-      output += `\x1b[${colorCode}m${word}\x1b[0m`; // Apply color to the word
-      if (i < words.length - 1) {
-        output += ' '; // Add a space between words
-      }
+        const word = words[i];
+        const colorCode = colors[i % colors.length];
+        output += `\x1b[${colorCode}m${word}\x1b[0m`; // Apply color to the word
+        if (i < words.length - 1) {
+            output += " "; // Add a space between words
+        }
     }
-  
+
     console.log(output);
 }
 
